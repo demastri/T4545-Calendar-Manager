@@ -3,7 +3,7 @@ import Calendar_IO
 import Bucket_IO
 import Games_IO
 import Calendars
-from time import sleep
+import base64
 
 from LogDetail import LogDetail
 
@@ -61,15 +61,18 @@ def run_task(task, args):
         case "add_calendar":  # adds an empty calendar to the structure
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
+            cal_name = args["cal_name"]
+
             current_calendars.add_calendar(args)
             # the new calendar should not have events, so calendarIO is not required
             bucket.write_data(current_calendars.cal_dict)
-            LogDetail().print_log("Log", "Bucket overwritten to add calendar " + args[0])
+            LogDetail().print_log("Log", "Bucket overwritten to add calendar " + cal_name)
 
         case "remove_calendar":  # removes a calendar (and cal events) from the structure
+            cal_name = args["cal_name"]
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
-            current_calendars.remove_calendar(args)
+            current_calendars.remove_calendar([cal_name])
 
             shared_calendars = Calendar_IO.Calendar_IO(project_id(), local_bucket_id(), local_credential_blob())
             shared_calendars.update_events(current_calendars.cal_dict)
@@ -85,5 +88,14 @@ def run_task(task, args):
 
 @functions_framework.http
 def hello_http(request):
-    run_task("update", [])
+    # request is a dictionary with _comment and data keys
+    # for reference, update = "dXBkYXRl"
+    # for reference, init = "aW5pdA=="
+    # add calendar needs to retrieve name and other credentials / parameters from message
+    # remove calendar needs to retrieve name from message
+
+    task_id = request["data"]
+    request_attributes = request["attributes"]
+    task_id = base64.b64decode(task_id)
+    run_task(task_id, request_attributes)
     return "Success"

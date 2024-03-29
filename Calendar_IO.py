@@ -14,7 +14,6 @@ class Calendar_IO:
         self.bucket_id = bucket_id
         self.credential_blob = credential_blob
         self.SCOPES = ["https://www.googleapis.com/auth/calendar"]
-        self.do_event_io = True
         return
 
     def get_credentials_from_bucket(self):
@@ -41,8 +40,13 @@ class Calendar_IO:
         return creds
 
     def remove_from_calendar(self, event, calendar):
-        creds = self.get_credentials()
-        service = discovery.build("calendar", "v3", credentials=creds)
+        service = None
+        try:
+            creds = self.get_credentials()
+            service = discovery.build("calendar", "v3", credentials=creds)
+        except Exception as e:
+            LogDetail().print_log("Error", "Exception accessing calendar service - add_to_calendar: <" + calendar["name"]+"> ")
+
         try:
             service.events().delete(calendarId=calendar["access"]["url"], eventId=event["eventId"]).execute()
         except:
@@ -50,8 +54,12 @@ class Calendar_IO:
         return 0
 
     def add_to_calendar(self, event, calendar):
-        creds = self.get_credentials()
-        service = discovery.build("calendar", "v3", credentials=creds)
+        service = None
+        try:
+            creds = self.get_credentials()
+            service = discovery.build("calendar", "v3", credentials=creds)
+        except Exception as e:
+            LogDetail().print_log("Error", "Exception accessing calendar service - add_to_calendar: <" + calendar["name"]+"> ")
 
         cur_time = datetime.now()
         cur_year = cur_time.year
@@ -87,8 +95,11 @@ class Calendar_IO:
             'reminders': {
             },
         }
-        if self.do_event_io:
+        try:
             saved_event = service.events().insert(calendarId=calendar["access"]["url"], body=event_str).execute()
+        except Exception as e:
+            LogDetail().print_log("Error",
+                                  "Exception writing to calendar - add_to_calendar: <" + calendar["name"] + "> ")
             event["eventId"] = saved_event["id"]
         return 0
 
@@ -131,7 +142,6 @@ class Calendar_IO:
                  "division": "TestDivision"}
         this_io = Calendar_IO(
             "t4545-calendar-manager", "jpd-t4545-calendar-manager", "token.json")
-        this_io.do_event_io = do_cal_io
         this_io.add_to_calendar(event, calendar)
 
 

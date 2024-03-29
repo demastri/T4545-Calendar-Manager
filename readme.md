@@ -1,3 +1,18 @@
+This implements a GCP cloud function that expects to be triggered by a pub/sub message
+
+It builds shareable calendars that contain events for currently scheduled games for the T4545 league
+Each calendar can track specific players, teams and/or divisions
+This way, as events get scheduled they show up in a calendar for reference
+
+it takes the following actions
+- read existing calendar and event data from a bucket
+- reads events from the scheduled games page
+- any new events that should be tracked are added to the appropriate calendar(s)
+- any events that have rolled of the calendar are removed from the appropriate calendar(s)
+
+There is a single cloud function implemented, expects the action to be passed into it via the pub/sub message
+the "normal" action is "update", although "init", "add_calendar" and "remove_calendar" are available
+
 to setup for this environment:
 
 install google cloud cli installer: https://cloud.google.com/sdk/docs/install

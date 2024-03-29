@@ -113,12 +113,13 @@ class Calendars:
 
 
     def add_calendar(self, args):
-        name = args[0]
-        cal_link = args[1]
-        cal_cred = args[2]
-        players = args[3]
-        divisions = args[4]
-        teams = args[5]
+        name = args["name"]         # single value
+        cal_link = args["url"]      # single value
+        cal_cred = args["cred"]     # single value
+        players = args["players"]       # list of string values
+        divisions = args["divisions"]   # list of string values
+        teams = args["teams"]           # list of string values
+
         newCal = { "name": name,
                    "access": { "url": cal_link, "credential": cal_cred},
                    "players": players, "divisions": divisions, "teams": teams,
