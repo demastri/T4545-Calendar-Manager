@@ -5,6 +5,9 @@ class Calendars:
 
     def __init__(self, cal_dict):
         self.cal_dict = cal_dict
+
+        self.print_cal_summary = False
+
         # make sure each event has a status tag - set to loaded - can be set to validated or updated
         # if it's still "loaded" at the end of the update, then it's been removed from the source
         # also make sure each calendar has a status tag - set to loaded
@@ -90,7 +93,8 @@ class Calendars:
                     removed = removed + 1
 
             final = len(cal["events"])
-            LogDetail.LogDetail().print_log("Log", "For calendar " + cal["name"] +
+            if self.print_cal_summary:
+                LogDetail.LogDetail().print_log("Log", "For calendar " + cal["name"] +
                                             ": Incoming: " + str(incoming) +
                                             " Discovered: " + str(discovered) +
                                             " Updated: " + str(updated) +

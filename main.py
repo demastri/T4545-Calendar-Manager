@@ -1,9 +1,13 @@
+from urllib.request import Request
+
 import functions_framework
+
 import Calendar_IO
 import Bucket_IO
 import Games_IO
 import Calendars
 import base64
+import json
 
 from LogDetail import LogDetail
 
@@ -83,19 +87,54 @@ def run_task(task, args):
             LogDetail().print_log("Log", "Quit signal received - exiting")
             done = True
 
+        case _:
+            LogDetail().print_log("Error", "Unknown action <" + task + ">")
+
     return done
 
 
 @functions_framework.http
 def hello_http(request):
-    # request is a dictionary with _comment and data keys
-    # for reference, update = "dXBkYXRl"
-    # for reference, init = "aW5pdA=="
-    # add calendar needs to retrieve name and other credentials / parameters from message
-    # remove calendar needs to retrieve name from message
+    data = request.data.decode("ascii")
+    data = json.loads(data)
 
-    task_id = request["data"]
-    request_attributes = request["attributes"]
-    task_id = base64.b64decode(task_id)
-    run_task(task_id, request_attributes)
+    action = data["message"]["data"]
+    action = base64.b64decode(action).decode("ascii")
+    args = {}
+    if "attributes" in data["message"]:
+        args = data["message"]["attributes"]
+
+    run_task(action, args)
     return "Success"
+
+
+sample_msg = {
+    "subscription": "projects/t4545-calendar-manager/subscriptions/eventarc-us-central1-t4545-calendar-task-ps-640276-sub-622",
+    "message": {
+        "data": "dXBkYXRl",
+        "attributes": {
+            "newCalName": "newCal"
+        },
+        "publish_time": "2024-03-29T21:28:53.78Z",
+        "message_id": "10811014301783647",
+        "publishTime": "2024-03-29T21:28:53.78Z",
+        "messageId": "10811014301783647"
+    }
+}
+
+if __name__ == '__main__':
+    testing_action = "blah"
+    # testing_action = "update"
+
+    testing_action = base64.b64encode(testing_action.encode("ascii"))
+
+    sample_msg["message"]["data"] = testing_action.decode("ascii")
+    pub_sub_msg = json.dumps(sample_msg)
+
+    verb = sample_msg["message"]["data"]
+
+    print(str(verb) + " <-> " + base64.b64decode(verb).decode("ascii"))
+
+    request = Request(url='http://x.com', data=pub_sub_msg.encode("ascii"))
+
+    hello_http(request)

@@ -13,6 +13,10 @@ it takes the following actions
 There is a single cloud function implemented, expects the action to be passed into it via the pub/sub message
 the "normal" action is "update", although "init", "add_calendar" and "remove_calendar" are available
 
+main has test code - entry point hello_http() reads pubsub message contents and acts accordingly
+and better instrumentation (logging) on errors
+
+
 to setup for this environment:
 
 install google cloud cli installer: https://cloud.google.com/sdk/docs/install
@@ -29,6 +33,3 @@ temp comment the first line of the requirements.txt file, then install the rest 
 
 conda install --yes --file requirements.txt
 
-todo
-    read pubsub message contents and act accordingly
-    better instrumentation (logging) and email on any kind of error
