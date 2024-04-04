@@ -48,7 +48,8 @@ class Calendar_IO:
             LogDetail().print_log("Error", "Exception accessing calendar service - add_to_calendar: <" + calendar["name"]+"> ")
 
         try:
-            service.events().delete(calendarId=calendar["access"]["url"], eventId=event["eventId"]).execute()
+            if "eventId" in event:
+                service.events().delete(calendarId=calendar["access"]["url"], eventId=event["eventId"]).execute()
         except:
             LogDetail().print_log("Error", "Attempt to delete event failed: " + event["eventId"])
         return 0
@@ -97,10 +98,10 @@ class Calendar_IO:
         }
         try:
             saved_event = service.events().insert(calendarId=calendar["access"]["url"], body=event_str).execute()
+            event["eventId"] = saved_event["id"]
         except Exception as e:
             LogDetail().print_log("Error",
                                   "Exception writing to calendar - add_to_calendar: <" + calendar["name"] + "> ")
-            event["eventId"] = saved_event["id"]
         return 0
 
     def update_events(self, json_dict):

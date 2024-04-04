@@ -62,6 +62,18 @@ def run_task(task, args):
             run_task("remove_calendar", cal_names)
             LogDetail().print_log("Log", "Bucket overwritten on reset of all calendars")
 
+        case "edit":  # updates calendar definitions - does not update definitions
+            bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
+            current_calendars = Calendars.Calendars(bucket.read_data())
+            for cal in current_calendars.cal_dict["calendars"]:
+                if "calName" in args and cal["name"] == args["calName"]:
+                    Calendars.Calendars.update_calendar(cal, args)
+                    LogDetail().print_log("Log", args["calName"]+"-Teams:"+str(cal["teams"]))
+                    LogDetail().print_log("Log", args["calName"] + "-Divisions:" + str(cal["divisions"]))
+                    LogDetail().print_log("Log", args["calName"] + "-Players:" + str(cal["players"]))
+            bucket.write_data(current_calendars.cal_dict)
+            LogDetail().print_log("Log", "Bucket overwritten on edited calendar(s) ")
+
         case "add_calendar":  # adds an empty calendar to the structure
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
@@ -113,7 +125,10 @@ sample_msg = {
     "message": {
         "data": "dXBkYXRl",
         "attributes": {
-            "newCalName": "newCal"
+            "calName": "John TD",
+            "teams": "",
+            "divisions": "--add U1300&nbsp;Planetary_Playoffs",
+            "players": "--remove Rookmaster --add Gojira"
         },
         "publish_time": "2024-03-29T21:28:53.78Z",
         "message_id": "10811014301783647",
@@ -123,18 +138,37 @@ sample_msg = {
 }
 
 if __name__ == '__main__':
-    testing_action = "blah"
-    # testing_action = "update"
-
+    """
+    update takes no parameters, goes out to games page and updates any existing calendars
+    "edit" takes the following parameters as keys in the attributes section:
+        calendarName: name of the calendar to update
+        semantics for each list:
+            --verb arg --verb arg 
+            verbs operated on in order
+            allowed verbs are
+                --clear     takes no arg - resets list to empty
+                --add       takes one arg - adds the given item to the list if not there already
+                --remove    takes one arg - removes the given item to the list if it's there already
+                neither --add nor --remove care if no action is taken if --add is there or --remove isn't
+            an empty list takes no action, although all three keys should be present        
+        
+        teams and divisions can have spaces, and division names have the rating and &nbsp before the name
+            replace any ' ' with '_' in this message (haven't seen a team/div with an underscore...)
+            div and playoff names are "controlled", and usernames are restricted to alpha+'-', to just teams...
+            so a playoff division could be named "U1300&nbsp;Erg_Playoffs" and a season "U1500&nbsp;Mars"
+        add 1 team, remove 1 player, leave divisions alone:
+        "calName" : "some cal"
+        "teams" : "--add teamName",
+        "players" : "--remove playerID",
+        "divisions" : "" 
+        
+    """
+    #testing_action = "update"
+    testing_action = "edit"
     testing_action = base64.b64encode(testing_action.encode("ascii"))
 
     sample_msg["message"]["data"] = testing_action.decode("ascii")
-    pub_sub_msg = json.dumps(sample_msg)
+    if "attributes" not in sample_msg["message"]:
+        sample_msg["message"]["attributes"] = {}
 
-    verb = sample_msg["message"]["data"]
-
-    print(str(verb) + " <-> " + base64.b64decode(verb).decode("ascii"))
-
-    request = Request(url='http://x.com', data=pub_sub_msg.encode("ascii"))
-
-    hello_http(request)
+    hello_http(Request(url="http://x.com", data=json.dumps(sample_msg).encode("ascii")))

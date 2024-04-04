@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import LogDetail
 
+
 class Calendars:
 
     def __init__(self, cal_dict):
@@ -17,7 +18,36 @@ class Calendars:
             for key in cal["events"]:
                 cal["events"][key]["status"] = "loaded"
 
+    @staticmethod
+    def update_calendar(cal, args):
+        LogDetail.LogDetail().print_log("log", "Editing calendar - " + cal["name"])
+        Calendars.update_attribute_list(cal["players"], args["players"])
+        Calendars.update_attribute_list(cal["divisions"], args["divisions"])
+        Calendars.update_attribute_list(cal["teams"], args["teams"])
 
+    @staticmethod
+    def update_attribute_list(cur_list, update_string):
+        cur_verb = ""
+        for val in update_string.split():
+            val = val.replace("&nbsp;", "\xa0")
+            val = val.replace("_", " ")
+            match cur_verb:
+                case "":
+                    cur_verb = val
+                case "--add":
+                    LogDetail.LogDetail().print_log("log", "adding - " + val)
+                    if val not in cur_list:
+                        cur_list.append(val)
+                    cur_verb = ""
+                case "--clear":
+                    LogDetail.LogDetail().print_log("log", "clearing list")
+                    cur_list.clear()
+                    cur_verb = val
+                case "--remove":
+                    LogDetail.LogDetail().print_log("log", "removing - " + val)
+                    while val in cur_list:
+                        cur_list.remove(val)
+                    cur_verb = ""
 
     def update_events(self, html_data):
         any_updated = False
@@ -95,12 +125,12 @@ class Calendars:
             final = len(cal["events"])
             if self.print_cal_summary:
                 LogDetail.LogDetail().print_log("Log", "For calendar " + cal["name"] +
-                                            ": Incoming: " + str(incoming) +
-                                            " Discovered: " + str(discovered) +
-                                            " Updated: " + str(updated) +
-                                            " Written: " + str(written) +
-                                            " Deleted: " + str(removed) +
-                                            " Final: " + str(final-removed) )
+                                                ": Incoming: " + str(incoming) +
+                                                " Discovered: " + str(discovered) +
+                                                " Updated: " + str(updated) +
+                                                " Written: " + str(written) +
+                                                " Deleted: " + str(removed) +
+                                                " Final: " + str(final - removed))
 
         return any_updated
 
@@ -110,25 +140,23 @@ class Calendars:
                 this_event = cal["events"][key]
                 this_event["status"] = "removed"
 
-
     def remove_all_calendars(self):
         for cal in self.cal_dict["calendars"]:
             cal["status"] = "removed"
 
-
     def add_calendar(self, args):
-        name = args["name"]         # single value
-        cal_link = args["url"]      # single value
-        cal_cred = args["cred"]     # single value
-        players = args["players"]       # list of string values
-        divisions = args["divisions"]   # list of string values
-        teams = args["teams"]           # list of string values
+        name = args["name"]  # single value
+        cal_link = args["url"]  # single value
+        cal_cred = args["cred"]  # single value
+        players = args["players"]  # list of string values
+        divisions = args["divisions"]  # list of string values
+        teams = args["teams"]  # list of string values
 
-        newCal = { "name": name,
-                   "access": { "url": cal_link, "credential": cal_cred},
-                   "players": players, "divisions": divisions, "teams": teams,
-                   "events": {}
-                   }
+        newCal = {"name": name,
+                  "access": {"url": cal_link, "credential": cal_cred},
+                  "players": players, "divisions": divisions, "teams": teams,
+                  "events": {}
+                  }
         self.cal_dict["calendars"].append(newCal)
 
     def remove_calendar(self, names):
