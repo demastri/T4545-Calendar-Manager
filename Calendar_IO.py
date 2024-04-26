@@ -39,13 +39,56 @@ class Calendar_IO:
                 self.write_credentials_to_bucket(json.loads(creds.to_json()))
         return creds
 
+    def new_calendar(self, args):
+        service = None
+        newCalId = ""
+        try:
+            creds = self.get_credentials()
+            service = discovery.build("calendar", "v3", credentials=creds)
+        except Exception as e:
+            LogDetail().print_log("Error",
+                                  "Exception accessing calendar service - new_calendar: <" + args["name"] + "> ")
+
+        try:
+            body = {
+                "kind": "calendar#calendar",  # Type of the resource ("calendar#calendar").
+                "description": args["calName"],  # Description of the calendar. Optional.
+                "summary": args["calName"],  # Title of the calendar.
+                "timeZone": 'America/New_York',                # The time zone of the calendar. (Formatted as an IANA Time Zone Database name, e.g. "Europe/Zurich".) Optional.
+            }
+            #calList = service.calendarList().list().execute()
+            insertRtn = service.calendars().insert(body=body).execute()
+            calList = service.calendarList().list().execute()
+
+            newCalId = insertRtn['id']
+
+        except:
+            LogDetail().print_log("Error", "Attempt to create new calendar failed: " + args["name"])
+        return newCalId
+
+    def delete_calendar(self, args):
+        service = None
+        try:
+            creds = self.get_credentials()
+            service = discovery.build("calendar", "v3", credentials=creds)
+        except Exception as e:
+            LogDetail().print_log("Error",
+                                  "Exception accessing calendar service - delete_calendar: <" + args["name"] + "> ")
+        try:
+             service.calendars().delete(calendarId=args['access']["url"]).execute()
+
+        except:
+            LogDetail().print_log("Error", "Attempt to remove calendar failed: " + args["name"])
+        return
+
     def remove_from_calendar(self, event, calendar):
         service = None
         try:
             creds = self.get_credentials()
             service = discovery.build("calendar", "v3", credentials=creds)
         except Exception as e:
-            LogDetail().print_log("Error", "Exception accessing calendar service - add_to_calendar: <" + calendar["name"]+"> ")
+            LogDetail().print_log("Error",
+                                  "Exception accessing calendar service - add_to_calendar: <" + calendar["name"] + "> ")
 
         try:
             if "eventId" in event:
@@ -60,7 +103,8 @@ class Calendar_IO:
             creds = self.get_credentials()
             service = discovery.build("calendar", "v3", credentials=creds)
         except Exception as e:
-            LogDetail().print_log("Error", "Exception accessing calendar service - add_to_calendar: <" + calendar["name"]+"> ")
+            LogDetail().print_log("Error",
+                                  "Exception accessing calendar service - add_to_calendar: <" + calendar["name"] + "> ")
 
         cur_time = datetime.now()
         cur_year = cur_time.year

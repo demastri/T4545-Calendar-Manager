@@ -38,6 +38,11 @@ def run_task(task, args):
     done = False
 
     match task:
+        case "display":
+            bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
+            current_calendars = Calendars.Calendars(bucket.read_data())
+            for cal in current_calendars.cal_dict["calendars"]:
+                print(cal)
         case "update":
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
@@ -68,32 +73,63 @@ def run_task(task, args):
             for cal in current_calendars.cal_dict["calendars"]:
                 if "calName" in args and cal["name"] == args["calName"]:
                     Calendars.Calendars.update_calendar(cal, args)
-                    LogDetail().print_log("Log", args["calName"]+"-Teams:"+str(cal["teams"]))
+                    LogDetail().print_log("Log", args["calName"] + "-Teams:" + str(cal["teams"]))
                     LogDetail().print_log("Log", args["calName"] + "-Divisions:" + str(cal["divisions"]))
                     LogDetail().print_log("Log", args["calName"] + "-Players:" + str(cal["players"]))
             bucket.write_data(current_calendars.cal_dict)
             LogDetail().print_log("Log", "Bucket overwritten on edited calendar(s) ")
 
         case "add_calendar":  # adds an empty calendar to the structure
+            exists = False
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
-            cal_name = args["cal_name"]
+            for cal in current_calendars.cal_dict["calendars"]:
+                if "calName" in args and cal["name"] == args["calName"]:
+                    exists = True
 
-            current_calendars.add_calendar(args)
-            # the new calendar should not have events, so calendarIO is not required
-            bucket.write_data(current_calendars.cal_dict)
-            LogDetail().print_log("Log", "Bucket overwritten to add calendar " + cal_name)
+            if not exists:
+                created = False
+                args["name"] = args["calName"]
+                args["url"] = ""
+                args["cred"] = ""
+                # create a new calendar
+                newCalId = Calendar_IO.Calendar_IO(project_id(), local_bucket_id(),
+                                                   local_credential_blob()).new_calendar(args)
+                # get URL / credential for new calendar
+
+                if newCalId != "":
+                    args["url"] = newCalId
+                    args["cred"] = "Some cred"
+                    current_calendars.add_calendar(args)
+                    # the new calendar should not have events, so calendarIO is not required
+                    bucket.write_data(current_calendars.cal_dict)
+                    LogDetail().print_log("Log", "Bucket overwritten to add calendar " + args["name"])
+                else:
+                    # send email with failure
+                    LogDetail().print_log("Log",
+                                          "Request to create calendar failed, bucket not overwritten: " + args["name"])
+            else:
+                # send email with failure
+                LogDetail().print_log("Log",
+                                      "Request to add existing calendar, bucket not overwritten: " + args["name"])
 
         case "remove_calendar":  # removes a calendar (and cal events) from the structure
-            cal_name = args["cal_name"]
+            # can change this - just remove the structure from our cal list and delete the calendar from google
+
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
-            current_calendars.remove_calendar([cal_name])
 
-            shared_calendars = Calendar_IO.Calendar_IO(project_id(), local_bucket_id(), local_credential_blob())
-            shared_calendars.update_events(current_calendars.cal_dict)
+            # this is not a list
+            cal_name = args["calName"]
+            removeList = [x for x in current_calendars.cal_dict["calendars"] if x["name"] in cal_name]
+
+            this_calIO = Calendar_IO.Calendar_IO(project_id(), local_bucket_id(), local_credential_blob())
+            for cal in removeList:
+                this_calIO.delete_calendar(cal)
+
+            current_calendars.remove_calendar([cal_name])
             bucket.write_data(current_calendars.cal_dict)
-            LogDetail().print_log("Log", "Bucket overwritten on removal of calendars:" + ' '.join(args))
+            LogDetail().print_log("Log", "Bucket overwritten on removal of calendars: " + cal_name)
 
         case "quit":
             LogDetail().print_log("Log", "Quit signal received - exiting")
@@ -120,15 +156,34 @@ def hello_http(request):
     return "Success"
 
 
-sample_msg = {
+sample_upd_msg = {
     "subscription": "projects/t4545-calendar-manager/subscriptions/eventarc-us-central1-t4545-calendar-task-ps-640276-sub-622",
     "message": {
         "data": "dXBkYXRl",
         "attributes": {
-            "calName": "John TD",
+            "calName": "John Testing Cal",
             "teams": "",
             "divisions": "--add U1300&nbsp;Planetary_Playoffs",
-            "players": "--remove Rookmaster --add Gojira"
+            "players": "--remove Rookmaster --add Gojira",
+            "respondEmail": "john@demastri.com"
+        },
+        "publish_time": "2024-03-29T21:28:53.78Z",
+        "message_id": "10811014301783647",
+        "publishTime": "2024-03-29T21:28:53.78Z",
+        "messageId": "10811014301783647"
+    }
+}
+
+sample_add_msg = {
+    "subscription": "projects/t4545-calendar-manager/subscriptions/eventarc-us-central1-t4545-calendar-task-ps-640276-sub-622",
+    "message": {
+        "data": "dXBkYXRl",
+        "attributes": {
+            "calName": "John Testing Cal",
+            "teams": [],
+            "divisions": [],
+            "players": [],
+            "respondEmail": "john@demastri.com"
         },
         "publish_time": "2024-03-29T21:28:53.78Z",
         "message_id": "10811014301783647",
@@ -163,8 +218,21 @@ if __name__ == '__main__':
         "divisions" : "" 
         
     """
-    #testing_action = "update"
-    testing_action = "edit"
+    #testing_action = "add_calendar"
+    testing_action = "remove_calendar"
+    #testing_action = "display"
+    # takes calName: name, respondEmail: email, teams: players: divisions:
+    # should check if there's already a calendar with this name
+    # create if possible and acquire the sharable URL
+    # and send a reply email to the respondEmail with success / failure
+    # testing_action = "remove_calendar"
+    # takes calName: name as attribute for cal/events to remove
+    # should actually delete the calendar as well
+    # testing_action = "update"
+    # testing_action = "edit"
+
+    sample_msg = sample_add_msg
+
     testing_action = base64.b64encode(testing_action.encode("ascii"))
 
     sample_msg["message"]["data"] = testing_action.decode("ascii")

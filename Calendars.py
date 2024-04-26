@@ -160,9 +160,4 @@ class Calendars:
         self.cal_dict["calendars"].append(newCal)
 
     def remove_calendar(self, names):
-        for cal in self.cal_dict["calendars"]:
-            if cal["name"] in names:
-                cal["status"] = "removed"
-                for key in cal["events"]:
-                    this_event = cal["events"][key]
-                    this_event["status"] = "removed"
+        self.cal_dict["calendars"] = [x for x in self.cal_dict["calendars"] if x["name"] not in names]
