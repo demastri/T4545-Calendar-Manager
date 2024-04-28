@@ -218,7 +218,7 @@ if __name__ == '__main__':
     """
     #testing_action = "add_calendar"    # takes calName: name as attribute for cal/events to add, creates calendar
     #testing_action = "remove_calendar"  # takes calName: name as attribute for cal/events to remove, deletes calendar
-    testing_action = "edit"       # can modify teams, divisions, players and respondEmail
+    testing_action = "Nothing real"       # can modify teams, divisions, players and respondEmail
 
     # takes calName: name, respondEmail: email, teams: players: divisions:
     # should check if there's already a calendar with this name
