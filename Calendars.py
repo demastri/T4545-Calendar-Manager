@@ -19,15 +19,19 @@ class Calendars:
                 cal["events"][key]["status"] = "loaded"
 
     @staticmethod
-    def update_calendar(cal, args):
+    def edit_calendar(cal, args):
         LogDetail.LogDetail().print_log("log", "Editing calendar - " + cal["name"])
         Calendars.update_attribute_list(cal["players"], args["players"])
         Calendars.update_attribute_list(cal["divisions"], args["divisions"])
         Calendars.update_attribute_list(cal["teams"], args["teams"])
+        if args["respondEmail"] != "":
+            cal["access"]["respondEmail"] = args["respondEmail"]
 
     @staticmethod
     def update_attribute_list(cur_list, update_string):
         cur_verb = ""
+        if update_string == "":
+            return
         for val in update_string.split():
             val = val.replace("&nbsp;", "\xa0")
             val = val.replace("_", " ")
@@ -148,12 +152,23 @@ class Calendars:
         name = args["name"]  # single value
         cal_link = args["url"]  # single value
         cal_cred = args["cred"]  # single value
-        players = args["players"]  # list of string values
-        divisions = args["divisions"]  # list of string values
-        teams = args["teams"]  # list of string values
+        cal_email = args["respondEmail"]  # single value
+
+        if args["players"] == "":  # list of string values - as a string...
+            players = []
+        else:
+            players = args["players"].split()
+        if args["divisions"] == "":  # list of string values - as a string...
+            divisions = []
+        else:
+            divisions = args["divisions"].split()
+        if args["teams"] == "":  # list of string values - as a string...
+            teams = []
+        else:
+            teams = args["teams"].split()
 
         newCal = {"name": name,
-                  "access": {"url": cal_link, "credential": cal_cred},
+                  "access": {"url": cal_link, "credential": cal_cred, "respondEmail": cal_email},
                   "players": players, "divisions": divisions, "teams": teams,
                   "events": {}
                   }

@@ -71,8 +71,8 @@ def run_task(task, args):
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
             for cal in current_calendars.cal_dict["calendars"]:
-                if "calName" in args and cal["name"] == args["calName"]:
-                    Calendars.Calendars.update_calendar(cal, args)
+                if "calName" in args and (cal["name"] == args["calName"] or "*" == args["calName"]):
+                    Calendars.Calendars.edit_calendar(cal, args)
                     LogDetail().print_log("Log", args["calName"] + "-Teams:" + str(cal["teams"]))
                     LogDetail().print_log("Log", args["calName"] + "-Divisions:" + str(cal["divisions"]))
                     LogDetail().print_log("Log", args["calName"] + "-Players:" + str(cal["players"]))
@@ -114,8 +114,6 @@ def run_task(task, args):
                                       "Request to add existing calendar, bucket not overwritten: " + args["name"])
 
         case "remove_calendar":  # removes a calendar (and cal events) from the structure
-            # can change this - just remove the structure from our cal list and delete the calendar from google
-
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
 
@@ -179,10 +177,10 @@ sample_add_msg = {
     "message": {
         "data": "dXBkYXRl",
         "attributes": {
-            "calName": "John Testing Cal",
-            "teams": [],
-            "divisions": [],
-            "players": [],
+            "calName": "*",
+            "teams": "",
+            "divisions": "",
+            "players": "",
             "respondEmail": "john@demastri.com"
         },
         "publish_time": "2024-03-29T21:28:53.78Z",
@@ -218,18 +216,15 @@ if __name__ == '__main__':
         "divisions" : "" 
         
     """
-    #testing_action = "add_calendar"
-    testing_action = "remove_calendar"
-    #testing_action = "display"
+    #testing_action = "add_calendar"    # takes calName: name as attribute for cal/events to add, creates calendar
+    #testing_action = "remove_calendar"  # takes calName: name as attribute for cal/events to remove, deletes calendar
+    testing_action = "edit"       # can modify teams, divisions, players and respondEmail
+
     # takes calName: name, respondEmail: email, teams: players: divisions:
     # should check if there's already a calendar with this name
     # create if possible and acquire the sharable URL
     # and send a reply email to the respondEmail with success / failure
-    # testing_action = "remove_calendar"
-    # takes calName: name as attribute for cal/events to remove
-    # should actually delete the calendar as well
     # testing_action = "update"
-    # testing_action = "edit"
 
     sample_msg = sample_add_msg
 
@@ -239,4 +234,10 @@ if __name__ == '__main__':
     if "attributes" not in sample_msg["message"]:
         sample_msg["message"]["attributes"] = {}
 
+    hello_http(Request(url="http://x.com", data=json.dumps(sample_msg).encode("ascii")))
+
+    # show the results
+    testing_action = base64.b64encode("display".encode("ascii"))
+    sample_msg["message"]["data"] = testing_action.decode("ascii")
+    sample_msg["message"]["attributes"] = {}
     hello_http(Request(url="http://x.com", data=json.dumps(sample_msg).encode("ascii")))
