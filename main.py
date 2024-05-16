@@ -154,15 +154,33 @@ def hello_http(request):
     return "Success"
 
 
+template_msg = {
+    "subscription": "projects/t4545-calendar-manager/subscriptions/eventarc-us-central1-t4545-calendar-task-ps-640276-sub-622",
+    "message": {
+        "data": "",
+        "attributes": {
+            "calName": "",
+            "teams": "",
+            "divisions": "",
+            "players": "",
+            "respondEmail": ""
+        },
+        "publish_time": "2024-03-29T21:28:53.78Z",
+        "message_id": "10811014301783647",
+        "publishTime": "2024-03-29T21:28:53.78Z",
+        "messageId": "10811014301783647"
+    }
+}
+
 sample_upd_msg = {
     "subscription": "projects/t4545-calendar-manager/subscriptions/eventarc-us-central1-t4545-calendar-task-ps-640276-sub-622",
     "message": {
         "data": "dXBkYXRl",
         "attributes": {
-            "calName": "John Testing Cal",
-            "teams": "",
-            "divisions": "--add U1300&nbsp;Planetary_Playoffs",
-            "players": "--remove Rookmaster --add Gojira",
+            "calName": "Reyk Calendar",
+            "teams": "--remove Reykjavikings_III --add STC_Silver",
+            "divisions": "--remove STC_Silver",
+            "players": "",
             "respondEmail": "john@demastri.com"
         },
         "publish_time": "2024-03-29T21:28:53.78Z",
@@ -190,54 +208,81 @@ sample_add_msg = {
     }
 }
 
+def do_command( verb, msg ):
+    action = base64.b64encode(verb.encode("ascii"))
+    msg["message"]["data"] = action.decode("ascii")
+    hello_http(Request(url="http://x.com", data=json.dumps(msg).encode("ascii")))
+    return
+
+def add_team( cal_name, team ):
+    this_msg = template_msg.copy()
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    wire_team = team.replace(" ", "_")
+    this_msg["message"]["attributes"]["teams"] = "--add "+wire_team
+    do_command("edit", this_msg)
+
+def remove_team( cal_name, team ):
+    this_msg = template_msg.copy()
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    wire_team = team.replace(" ", "_")
+    this_msg["message"]["attributes"]["teams"] = "--remove "+wire_team
+    do_command("edit", this_msg)
+
+def add_player( cal_name, player ):
+    this_msg = template_msg.copy()
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    wire_player = player.replace(" ", "_")
+    this_msg["message"]["attributes"]["players"] = "--add "+wire_player
+    do_command("edit", this_msg)
+
+def remove_player( cal_name, player ):
+    this_msg = template_msg.copy()
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    wire_player = player.replace(" ", "_")
+    this_msg["message"]["attributes"]["players"] = "--remove "+wire_player
+    do_command("edit", this_msg)
+
+def add_division( cal_name, div ):
+    this_msg = template_msg.copy()
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    wire_div = div.replace(" ", "_")
+    this_msg["message"]["attributes"]["divisions"] = "--add " + wire_div
+    do_command("edit", this_msg)
+
+
+def remove_division( cal_name, div ):
+    this_msg = template_msg.copy()
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    wire_div = div.replace(" ", "_")
+    this_msg["message"]["attributes"]["divisions"] = "--remove "+wire_div
+    do_command("edit", this_msg)
+
+def do_update():
+    this_msg = template_msg.copy()
+    do_command("update", this_msg)
+
+def do_display():
+    this_msg = template_msg.copy()
+    do_command("display", this_msg)
+
+
 if __name__ == '__main__':
-    """
-    update takes no parameters, goes out to games page and updates any existing calendars
-    "edit" takes the following parameters as keys in the attributes section:
-        calendarName: name of the calendar to update
-        semantics for each list:
-            --verb arg --verb arg 
-            verbs operated on in order
-            allowed verbs are
-                --clear     takes no arg - resets list to empty
-                --add       takes one arg - adds the given item to the list if not there already
-                --remove    takes one arg - removes the given item to the list if it's there already
-                neither --add nor --remove care if no action is taken if --add is there or --remove isn't
-            an empty list takes no action, although all three keys should be present        
-        
-        teams and divisions can have spaces, and division names have the rating and &nbsp before the name
-            replace any ' ' with '_' in this message (haven't seen a team/div with an underscore...)
-            div and playoff names are "controlled", and usernames are restricted to alpha+'-', to just teams...
-            so a playoff division could be named "U1300&nbsp;Erg_Playoffs" and a season "U1500&nbsp;Mars"
-        add 1 team, remove 1 player, leave divisions alone:
-        "calName" : "some cal"
-        "teams" : "--add teamName",
-        "players" : "--remove playerID",
-        "divisions" : "" 
-        
-    """
-    #testing_action = "add_calendar"    # takes calName: name as attribute for cal/events to add, creates calendar
-    #testing_action = "remove_calendar"  # takes calName: name as attribute for cal/events to remove, deletes calendar
-    testing_action = "Nothing real"       # can modify teams, divisions, players and respondEmail
 
-    # takes calName: name, respondEmail: email, teams: players: divisions:
-    # should check if there's already a calendar with this name
-    # create if possible and acquire the sharable URL
-    # and send a reply email to the respondEmail with success / failure
-    # testing_action = "update"
+    # added helper functions to make testing and maintenance easier:
+    do_display()    # show structure before this action
 
-    sample_msg = sample_add_msg
+    # do some combination of these actions as needed...
+    this_cal = "John TD"
+    #add_player( this_cal, "TestPlayer")
+    #remove_player( this_cal, "TestPlayer")
 
-    testing_action = base64.b64encode(testing_action.encode("ascii"))
+    add_team( this_cal, "TestTeam")
+    do_display()    # show structure between the two actions, as needed...
+    remove_team( this_cal, "TestTeam")
 
-    sample_msg["message"]["data"] = testing_action.decode("ascii")
-    if "attributes" not in sample_msg["message"]:
-        sample_msg["message"]["attributes"] = {}
+    #add_division( this_cal, "TestDiv")
+    #remove_division( this_cal, "TestDiv")
 
-    hello_http(Request(url="http://x.com", data=json.dumps(sample_msg).encode("ascii")))
+    #do_update() # or just read data from the site...
 
-    # show the results
-    testing_action = base64.b64encode("display".encode("ascii"))
-    sample_msg["message"]["data"] = testing_action.decode("ascii")
-    sample_msg["message"]["attributes"] = {}
-    hello_http(Request(url="http://x.com", data=json.dumps(sample_msg).encode("ascii")))
+    do_display()    # show structure after this action
