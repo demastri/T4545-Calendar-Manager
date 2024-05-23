@@ -273,16 +273,18 @@ if __name__ == '__main__':
 
     # do some combination of these actions as needed...
     this_cal = "John TD"
-    #add_player( this_cal, "TestPlayer")
+    #add_player( this_cal, "Gojira")
     #remove_player( this_cal, "TestPlayer")
 
-    add_team( this_cal, "TestTeam")
-    do_display()    # show structure between the two actions, as needed...
-    remove_team( this_cal, "TestTeam")
+    #remove_team( this_cal, "Reykjavikings")
+    #do_update()  # or just read data from the site...
+    #add_team( this_cal, "Reykjavikings")
+    #do_display()    # show structure between the two actions, as needed...
+    #remove_team( this_cal, "Reykjavikings")
 
-    #add_division( this_cal, "TestDiv")
-    #remove_division( this_cal, "TestDiv")
+    add_division( this_cal, "U1300&nbsp;Mars")
+    #remove_division( this_cal, "U1300&nbsp;Mars")
 
-    #do_update() # or just read data from the site...
+    do_update() # or just read data from the site...
 
     do_display()    # show structure after this action

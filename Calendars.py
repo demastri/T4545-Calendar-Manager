@@ -92,11 +92,12 @@ class Calendars:
                     board = pairing_attr[8].text
 
                     # at this point, if the event doesn't exist at this place/time, write it
+                    new_event = {"players": player_tag, "time": game_time, "round": round, "board": board,
+                                 "division": division}
                     if key not in cal["events"]:
                         discovered = discovered + 1
                         LogDetail.LogDetail().print_log("event", "Writing new event - " + key)
-                        new_event = {"players": player_tag, "time": game_time, "round": round, "board": board,
-                                     "division": division}
+
 
                         cal["events"][key] = new_event
                         new_event["status"] = "updated"
@@ -121,7 +122,7 @@ class Calendars:
 
             for key in cal["events"]:
                 this_event = cal["events"][key]
-                if this_event["status"] == "loaded":
+                if "status" in this_event and this_event["status"] == "loaded":
                     this_event["status"] = "removed"
                     any_updated = True
                     removed = removed + 1

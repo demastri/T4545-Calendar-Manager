@@ -156,12 +156,12 @@ class Calendar_IO:
             removed_ids = []
             for key in cal["events"]:
                 event = cal["events"][key]
-                if event["status"] == "removed":
+                if "status" in event and event["status"] == "removed":
                     # remove this id from the external calendar
                     self.remove_from_calendar(event, cal)
                     # add this to the removed_ids list
                     removed_ids.append(key)
-                if event["status"] == "updated":
+                if "status" in event and event["status"] == "updated":
                     if "oldID" in event:
                         ### remove the old id from the calendar
                         del cal["events"][key]["oldID"]
