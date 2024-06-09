@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
 
 import Games_IO
+import Calendar_IO
 import LogDetail
 
 
@@ -174,12 +176,20 @@ class Calendars:
             for key in cal["events"]:
                 this_event = cal["events"][key]
                 if "status" in this_event and this_event["status"] == "loaded":
-                    ### additional "timeout" check - say 5 days after the game was scheduled?
-                    this_event["status"] = "removed"
-                    any_updated = True
-                    removed = removed + 1
+                    days_to_linger = 3
+                    # additional "timeout" check - say n days after the game was scheduled?
+                    event_time = Calendar_IO.get_actual_time_from_shown_time(this_event["time"])
+                    if datetime.now() > event_time + timedelta(days=days_to_linger):
+                        LogDetail.LogDetail().print_log("Log",
+                            "Removing event after timeout - removed from site, was in calendar " + cal["name"] + " - " + key + " scheduled at " + this_event["time"] )
 
-            final = len(cal["events"])
+                        this_event["status"] = "removed"
+                        any_updated = True
+                        removed = removed + 1
+                    else:
+                        LogDetail.LogDetail().print_log("Log",
+                            "Waiting for event to timeout - removed from site, still in calendar " + cal["name"] + " - " + key + " scheduled at " + this_event["time"] )
+
             if self.print_cal_summary:
                 LogDetail.LogDetail().print_log("Log", "For calendar " + cal["name"] +
                                                 ": Incoming: " + str(incoming) +
