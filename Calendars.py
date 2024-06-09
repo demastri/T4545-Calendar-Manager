@@ -110,8 +110,10 @@ class Calendars:
                 wTeam = pairing_attr[3].text
                 bTeam = pairing_attr[7].text
                 division = pairing_attr[0].text
-                gameHasResult = pairing_attr[5].text != "-"
+
                 gameLinkCell = pairing_attr[5]
+                result_string = Games_IO.getPGNOrResultFromCell(gameLinkCell)
+                gameHasResult = result_string != ""
 
                 if (wTeam in cal["teams"] or bTeam in cal["teams"] or
                         wPlayer in cal["players"] or bPlayer in cal["players"] or
