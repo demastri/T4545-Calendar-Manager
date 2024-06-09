@@ -2,3 +2,4 @@ functions-framework==3.*
 google-cloud-storage 
 BeautifulSoup4
 google-api-python-client
+pytz

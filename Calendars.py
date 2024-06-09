@@ -1,10 +1,9 @@
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
-
-import Games_IO
-import Calendar_IO
+import pytz
+from Games_IO import Games_IO
+from Calendar_IO import Calendar_IO
 import LogDetail
-
 
 class Calendars:
 
@@ -159,7 +158,7 @@ class Calendars:
                                 LogDetail.LogDetail().print_log("event", "Updating game result - " + key)
 
 
-                                result_string = Games_IO.Games_IO.getPGNOrResultFromCell(gameLinkCell)
+                                result_string = Games_IO.getPGNOrResultFromCell(gameLinkCell)
                                 if result_string == "" and eventHasResult:
                                     del this_event["result"]
                                     this_event["status"] = "updated"
@@ -178,8 +177,12 @@ class Calendars:
                 if "status" in this_event and this_event["status"] == "loaded":
                     days_to_linger = 3
                     # additional "timeout" check - say n days after the game was scheduled?
+                    tz = pytz.utc
+                    comparable_now = datetime.now(tz)
                     event_time = Calendar_IO.get_actual_time_from_shown_time(this_event["time"])
-                    if datetime.now() > event_time + timedelta(days=days_to_linger):
+                    rolloff_time = (event_time+timedelta(days=days_to_linger)).astimezone(tz)
+
+                    if comparable_now > rolloff_time:
                         LogDetail.LogDetail().print_log("Log",
                             "Removing event after timeout - removed from site, was in calendar " + cal["name"] + " - " + key + " scheduled at " + this_event["time"] )
 
