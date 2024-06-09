@@ -37,16 +37,17 @@ class Games_IO(object):
                 result = "";
             return result
 
-        # if it's a link, get the html from the link
-        link = Games_IO.BASE_URL + (linkCell.contents[0].attrs["href"])[3:]
-        pgn_page = Games_IO.get_games_data(link)
-        soup = BeautifulSoup(pgn_page, 'html.parser')
+        if "href" in linkCell.contents[0].attrs:
+            # if it's a link, get the html from the link
+            link = Games_IO.BASE_URL + (linkCell.contents[0].attrs["href"])[3:]
+            pgn_page = Games_IO.get_games_data(link)
+            soup = BeautifulSoup(pgn_page, 'html.parser')
 
-        # it's just a <P> -- PGN Text -- </p> tag where the first 6 characters of the text are  "[Event"
-        possible_pgn = soup.find_all('p')
-        for tag in possible_pgn:
-            if tag.text.strip()[:6] == "[Event":
-                return tag.text
+            # it's just a <P> -- PGN Text -- </p> tag where the first 6 characters of the text are  "[Event"
+            possible_pgn = soup.find_all('p')
+            for tag in possible_pgn:
+                if tag.text.strip()[:6] == "[Event":
+                    return tag.text
+            LogDetail.LogDetail().print_log("log", "expected PGN data from<"+link+">")
 
-        LogDetail.LogDetail().print_log("log", "expected PGN data from<"+link+">")
         return ""
