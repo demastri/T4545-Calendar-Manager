@@ -1,4 +1,6 @@
 from bs4 import BeautifulSoup
+
+import Games_IO
 import LogDetail
 
 
@@ -15,8 +17,14 @@ class Calendars:
         # if it's still "deleted" at the end of the update, then it's been removed
         for cal in self.cal_dict["calendars"]:
             cal["status"] = "loaded"
+            no_event_id = []
             for key in cal["events"]:
+                if( "eventId" not in cal["events"][key]):
+                    no_event_id.append(key)
                 cal["events"][key]["status"] = "loaded"
+            for k in no_event_id:
+                del cal["events"][k]
+
 
     @staticmethod
     def edit_calendar(cal, args):
@@ -65,6 +73,29 @@ class Calendars:
             # Parse HTML page with BeautifulSoup
             soup = BeautifulSoup(html_data, 'html.parser')
 
+            """
+                <tr>
+                <tr><td class="sched">U1500&nbsp;<a href="../tournament/t100/t100round4.html#Gibson">Gibson</a></td><td class="sched">4</td>
+                <td class="schedb">Sat, Jun 08, 15:00</td><td class="sched">Fishers of Men - Kings Army</td><td class="schedb_nrb" style="text-align:right">BIRDSMAN</td>
+                <td class="schedbc_nhb"><a href ="../pgnplayer/pgnplayer.php?ID=28412&amp;Board=3">1:0</a></td><td class="schedb_nlb">cayo89</td><td class="sched">Jousting Knights U1500</td>
+                <td class="sched">3</td></tr>
+
+                    <td class="sched">U1500&nbsp;<a href="../tournament/t100/t100round4.html#Habbanya">Habbanya</a></td>
+                    <td class="sched">4</td>
+                    <td class="schedb">Sat, Jun 08, 21:00</td>
+                    <td class="sched">Valar Morghulis U1500</td>
+                    <td class="schedb_nrb" style="text-align:right">seattleblues</td>
+                    
+                    this could either be empty or have a result and link similar to as shown here:  
+                    <td class="schedbc_nhb"><a href ="../pgnplayer/pgnplayer.php?ID=28412&amp;Board=3">1:0</a></td>
+                    <td class="schedbc_nhb">-</td>
+                    
+                    <td class="schedb_nlb">Electryon</td>
+                    <td class="sched">Dragons</td>
+                    <td class="sched">4</td>
+                    </tr>
+            """
+
             # Get the text content
             pairing_table = soup.find_all('table', {'class': 'sched'})
             pairings = pairing_table[0].find_all('tr')
@@ -78,6 +109,9 @@ class Calendars:
                 wTeam = pairing_attr[3].text
                 bTeam = pairing_attr[7].text
                 division = pairing_attr[0].text
+                gameHasResult = pairing_attr[5].text != "-"
+                gameLinkCell = pairing_attr[5]
+
                 if (wTeam in cal["teams"] or bTeam in cal["teams"] or
                         wPlayer in cal["players"] or bPlayer in cal["players"] or
                         division in cal["divisions"]):
@@ -98,7 +132,6 @@ class Calendars:
                         discovered = discovered + 1
                         LogDetail.LogDetail().print_log("event", "Writing new event - " + key)
 
-
                         cal["events"][key] = new_event
                         new_event["status"] = "updated"
                         written = written + 1
@@ -106,23 +139,42 @@ class Calendars:
                     else:
                         # at this point, the event already exists in the calendar
                         # if date is not the same (but is a valid date), then update the event
-                        if cal["events"][key]["time"] == game_time:
+                        # or, if the game has now been played, get the pgn and update the game
+
+                        sameTime = cal["events"][key]["time"] == game_time
+                        eventHasResult = ("result" in cal["events"][key].keys())
+
+                        if sameTime and eventHasResult == gameHasResult:
                             cal["events"][key]["status"] = "validated"
                         else:
-                            LogDetail.LogDetail().print_log("event", "Updating  event - " + key)
                             this_event = cal["events"][key]
-                            this_event["time"] = game_time
-                            this_event["old_id"] = this_event["eventId"]
-                            this_event["status"] = "updated"
+                            if not sameTime:
+                                LogDetail.LogDetail().print_log("event", "Updating event time- " + key)
+                                this_event["time"] = game_time
+                                this_event["old_id"] = this_event["eventId"]
+                                this_event["status"] = "updated"
+                            if eventHasResult != gameHasResult:
+                                LogDetail.LogDetail().print_log("event", "Updating game result - " + key)
 
-                            cal["events"][key] = new_event
-                            updated = updated + 1
-                            written = written + 1
-                            any_updated = True
+
+                                result_string = Games_IO.Games_IO.getPGNOrResultFromCell(gameLinkCell)
+                                if result_string == "" and eventHasResult:
+                                    del this_event["result"]
+                                    this_event["status"] = "updated"
+
+                                if result_string != "" and (not eventHasResult or result_string != this_event["result"]):
+                                    this_event["result"] = result_string
+                                    this_event["status"] = "updated"
+
+                            if this_event["status"] == "updated":
+                                updated = updated + 1
+                                written = written + 1
+                                any_updated = True
 
             for key in cal["events"]:
                 this_event = cal["events"][key]
                 if "status" in this_event and this_event["status"] == "loaded":
+                    ### additional "timeout" check - say 5 days after the game was scheduled?
                     this_event["status"] = "removed"
                     any_updated = True
                     removed = removed + 1

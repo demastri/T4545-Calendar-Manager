@@ -47,7 +47,7 @@ def run_task(task, args):
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
 
-            game_data = Games_IO.Games_IO().get_games_data(games_url())
+            game_data = Games_IO.Games_IO.get_games_data(games_url())
             updated = current_calendars.update_events(game_data)
 
             if updated:
@@ -172,41 +172,10 @@ template_msg = {
     }
 }
 
-sample_upd_msg = {
-    "subscription": "projects/t4545-calendar-manager/subscriptions/eventarc-us-central1-t4545-calendar-task-ps-640276-sub-622",
-    "message": {
-        "data": "dXBkYXRl",
-        "attributes": {
-            "calName": "Reyk Calendar",
-            "teams": "--remove Reykjavikings_III --add STC_Silver",
-            "divisions": "--remove STC_Silver",
-            "players": "",
-            "respondEmail": "john@demastri.com"
-        },
-        "publish_time": "2024-03-29T21:28:53.78Z",
-        "message_id": "10811014301783647",
-        "publishTime": "2024-03-29T21:28:53.78Z",
-        "messageId": "10811014301783647"
-    }
-}
 
-sample_add_msg = {
-    "subscription": "projects/t4545-calendar-manager/subscriptions/eventarc-us-central1-t4545-calendar-task-ps-640276-sub-622",
-    "message": {
-        "data": "dXBkYXRl",
-        "attributes": {
-            "calName": "*",
-            "teams": "",
-            "divisions": "",
-            "players": "",
-            "respondEmail": "john@demastri.com"
-        },
-        "publish_time": "2024-03-29T21:28:53.78Z",
-        "message_id": "10811014301783647",
-        "publishTime": "2024-03-29T21:28:53.78Z",
-        "messageId": "10811014301783647"
-    }
-}
+def do_basic_command(verb):
+    this_msg = template_msg.copy()
+    do_command(verb, this_msg)
 
 def do_command( verb, msg ):
     action = base64.b64encode(verb.encode("ascii"))
@@ -257,34 +226,84 @@ def remove_division( cal_name, div ):
     this_msg["message"]["attributes"]["divisions"] = "--remove "+wire_div
     do_command("edit", this_msg)
 
-def do_update():
+def add_calendar(cal_name):
     this_msg = template_msg.copy()
-    do_command("update", this_msg)
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    do_command("add_calendar", this_msg)
 
-def do_display():
+def remove_calendar(cal_name):
     this_msg = template_msg.copy()
-    do_command("display", this_msg)
+    this_msg["message"]["attributes"]["calName"] = cal_name
+    do_command("remove_calendar", this_msg)
+
+def get_command():
+    match input("Please enter the number of the command you'd like to run:\n" +
+          " 1 to display the current calendar configurations\n" +
+          " 2 to run a regular update\n" +
+          " 3 to edit a calendar configuration\n" +
+          " 4 to add a new calendar\n" +
+          " 5 to remove a calendar\n" +
+          " 6 to init the entire managed structure\n" +
+          " 7 to quit\n"
+          ):
+        case "1":
+            return "display", None,None,None
+        case "2":
+            return "update", None,None,None
+        case "3":
+            calName = input("Enter the calendar name to edit:")
+            action = input("Enter 'add' or 'remove':")
+            option = input("Enter 'team', 'player', or 'division':")
+            arg = input("Enter name of new or updated entity:")
+
+            return action+"_"+option, calName, arg, None
+        case "4":
+            return "new_calendar", input("Enter the new calendar name:"), None,None
+        case "5":
+            return "remove_calendar", input("Enter the calendar name to remove:"), None,None
+        case "6":
+            return "init", None,None,None
+        case "7":
+            return "quit", None,None,None
+        case _:
+            print( "Didn't get that..." )
+            return None,None,None,None
+
+
+
 
 
 if __name__ == '__main__':
 
-    # added helper functions to make testing and maintenance easier:
-    do_display()    # show structure before this action
+    done = False
 
-    # do some combination of these actions as needed...
-    this_cal = "John TD"
-    #add_player( this_cal, "Gojira")
-    #remove_player( this_cal, "TestPlayer")
+    while not done:
+        verb, cal_name, arg, entity = get_command()
 
-    #remove_team( this_cal, "Reykjavikings")
-    #do_update()  # or just read data from the site...
-    #add_team( this_cal, "Reykjavikings")
-    #do_display()    # show structure between the two actions, as needed...
-    #remove_team( this_cal, "Reykjavikings")
-
-    add_division( this_cal, "U1300&nbsp;Mars")
-    #remove_division( this_cal, "U1300&nbsp;Mars")
-
-    do_update() # or just read data from the site...
-
-    do_display()    # show structure after this action
+        match verb:
+            case "display":
+                do_basic_command(verb)  # show structure before this action
+            case "update":
+                do_basic_command(verb)  # show structure before this action
+            case "add_division":
+                add_division(cal_name, arg)
+            case "remove_division":
+                remove_division(cal_name, arg)
+            case "add_team":
+                add_team(cal_name, arg)
+            case "remove_team":
+                remove_team(cal_name, arg)
+            case "add_player":
+                add_player(cal_name, arg)
+            case "remove_player":
+                remove_player(cal_name, arg)
+            case "init":  # deletes all existing calendars
+                do_basic_command(verb)
+            case "add_calendar":  # adds an empty calendar to the structure
+                add_calendar(cal_name)
+            case "remove_calendar":  # removes a calendar (and cal events) from the structure
+                remove_calendar(cal_name)
+            case "quit":
+                done = True
+            case _:
+                LogDetail().print_log("Error", "Unknown action <" + verb + ">")

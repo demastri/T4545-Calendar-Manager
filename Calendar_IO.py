@@ -121,10 +121,15 @@ class Calendar_IO:
         event_start = event_time.strftime("%Y-%m-%dT%H:%M:00%z")  # Sat, Mar 16, 11:00
         event_end = end_time.strftime("%Y-%m-%dT%H:%M:00%z")  # Sat, Mar 16, 11:00
 
+        if "result" not in event.keys():
+            description = 'Division ' + event["division"] + ' Game is scheduled'
+        else:
+            description = 'Division ' + event["division"] + ' Game has a result:\n\n' + event["result"]
+
         event_str = {
             'summary': 'T4545 Game - Round ' + event["round"] + ': ' + event["players"],
             'location': 'Internet Chess Club',
-            'description': 'Division ' + event["division"] + ' Game is scheduled',
+            'description': description,
             'start': {
                 'dateTime': event_start,
                 'timeZone': 'America/New_York',
@@ -163,7 +168,8 @@ class Calendar_IO:
                     removed_ids.append(key)
                 if "status" in event and event["status"] == "updated":
                     if "oldID" in event:
-                        ### remove the old id from the calendar
+                        # remove the old id from the calendar
+                        self.remove_from_calendar(event, cal)
                         del cal["events"][key]["oldID"]
                     # write the new event to the calendar
                     self.add_to_calendar(event, cal)
