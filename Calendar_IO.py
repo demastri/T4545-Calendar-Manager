@@ -173,10 +173,10 @@ class Calendar_IO:
                     # add this to the removed_ids list
                     removed_ids.append(key)
                 if "status" in event and event["status"] == "updated":
-                    if "oldID" in event:
+                    if "old_id" in event:
                         # remove the old id from the calendar
                         self.remove_from_calendar(event, cal)
-                        del cal["events"][key]["oldID"]
+                        del cal["events"][key]["old_id"]
                     # write the new event to the calendar
                     self.add_to_calendar(event, cal)
                     # clear metadata from the event
