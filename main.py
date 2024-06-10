@@ -130,7 +130,7 @@ def run_task(task, args):
             LogDetail().print_log("Log", "Bucket overwritten on removal of calendars: " + cal_name)
 
         case "quit":
-            LogDetail().print_log("Log", "Quit signal received - exiting")
+            LogDetail().print_log("Log", "Quit signal received - exiting!")
             done = True
 
         case _:
