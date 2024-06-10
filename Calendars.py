@@ -162,10 +162,12 @@ class Calendars:
 
                                 result_string = Games_IO.getPGNOrResultFromCell(gameLinkCell)
                                 if result_string == "" and eventHasResult:
+                                    this_event["old_id"] = this_event["eventId"]
                                     del this_event["result"]
                                     this_event["status"] = "updated"
 
                                 if result_string != "" and (not eventHasResult or result_string != this_event["result"]):
+                                    this_event["old_id"] = this_event["eventId"]
                                     this_event["result"] = result_string
                                     this_event["status"] = "updated"
 
