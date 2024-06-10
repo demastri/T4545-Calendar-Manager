@@ -1,0 +1,12 @@
+
+steps:
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  args:
+  - gcloud
+  - functions
+  - deploy
+  - t4545-calendar-task-ps
+  - --region=us-central1
+  - --source=.
+  - --trigger-http
+  - --runtime=python312
