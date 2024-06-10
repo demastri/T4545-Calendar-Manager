@@ -8,5 +8,5 @@ steps:
   - t4545-calendar-task-ps
   - --region=us-central1
   - --source=.
-  - --entry-point=hello-http
+  - --entry-point=hello_http
   - --runtime=python312
