@@ -97,21 +97,6 @@ class Calendar_IO:
             LogDetail().print_log("Error", "Attempt to delete event failed: " + event["eventId"])
         return 0
 
-
-    @staticmethod
-    def get_actual_time_from_shown_time(disp_time):
-        cur_time = datetime.now()
-        cur_year = cur_time.year
-
-        # note that the event string does NOT include a year...  Looks like:   Sat, Mar 16, 11:00
-        event_time = datetime.strptime(str(cur_year) + " " + disp_time + " -0400", "%Y %a, %b %d, %H:%M %z")
-
-        # be sure that if the event is in Jan and the current date is Dec, set it to NEXT year
-        if cur_time.month == 12 and event_time.month == 1:
-            event_time = event_time.replace(year=cur_year + 1);
-
-        return event_time
-
     def add_to_calendar(self, event, calendar):
         service = None
         try:
@@ -121,16 +106,13 @@ class Calendar_IO:
             LogDetail().print_log("Error",
                                   "Exception accessing calendar service - add_to_calendar: <" + calendar["name"] + "> ")
 
-        event_time = Calendar_IO.get_actual_time_from_shown_time(event["time"])
+        event_time = datetime.strptime(event["time"], "%Y-%m-%dT%H:%M:00%z")
         end_time = event_time + timedelta(hours=2)
 
         event_start = event_time.strftime("%Y-%m-%dT%H:%M:00%z")  # Sat, Mar 16, 11:00
         event_end = end_time.strftime("%Y-%m-%dT%H:%M:00%z")  # Sat, Mar 16, 11:00
 
-        if "result" not in event.keys():
-            description = 'Division ' + event["division"] + ' Game is scheduled'
-        else:
-            description = 'Division ' + event["division"] + ' Game has a result:\n\n' + event["result"]
+        description = 'Division ' + event["division"] + ' ' + event["result"]
 
         event_str = {
             'summary': 'T4545 Game - Round ' + event["round"] + ': ' + event["players"],

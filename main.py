@@ -8,6 +8,7 @@ import Games_IO
 import Calendars
 import base64
 import json
+from Games_IO import Games_IO
 
 from LogDetail import LogDetail
 
@@ -47,8 +48,8 @@ def run_task(task, args):
             bucket = Bucket_IO.Bucket_IO(project_id(), local_bucket_id(), local_bucket_blob())
             current_calendars = Calendars.Calendars(bucket.read_data())
 
-            game_data = Games_IO.Games_IO.get_games_data(games_url())
-            updated = current_calendars.update_events(game_data)
+            visible_games = Games_IO.load_games(games_url())
+            updated = current_calendars.update_events(visible_games)
 
             if updated:
                 shared_calendars = Calendar_IO.Calendar_IO(project_id(), local_bucket_id(), local_credential_blob())
