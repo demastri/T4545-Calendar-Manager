@@ -97,6 +97,9 @@ class Calendar_IO:
             LogDetail().print_log("Error", "Attempt to delete event failed: " + event["eventId"])
         return 0
 
+    def update_calendar_event(self, event, calendar):
+        self.add_to_calendar(event, calendar)
+
     def add_to_calendar(self, event, calendar):
         service = None
         try:
@@ -134,8 +137,12 @@ class Calendar_IO:
             },
         }
         try:
-            saved_event = service.events().insert(calendarId=calendar["access"]["url"], body=event_str).execute()
-            event["eventId"] = saved_event["id"]
+            if "old_id" in event.keys() and event["old_id"] is not None:
+                saved_event = service.events().update(calendarId=calendar["access"]["url"], eventId=event["eventId"], body=event_str).execute()
+                assert saved_event["id"] == event["eventId"]
+            else:
+                saved_event = service.events().insert(calendarId=calendar["access"]["url"], body=event_str).execute()
+                event["eventId"] = saved_event["id"]
         except Exception as e:
             LogDetail().print_log("Error",
                                   "Exception writing to calendar - add_to_calendar: <" + calendar["name"] + "> ")
@@ -154,13 +161,14 @@ class Calendar_IO:
                     self.remove_from_calendar(event, cal)
                     # add this to the removed_ids list
                     removed_ids.append(key)
-                if "status" in event and event["status"] == "updated":
-                    if "old_id" in event:
-                        # remove the old id from the calendar
-                        self.remove_from_calendar(event, cal)
-                        del cal["events"][key]["old_id"]
+                if "status" in event and event["status"] == "added":
                     # write the new event to the calendar
                     self.add_to_calendar(event, cal)
+                    # clear metadata from the event
+                    del cal["events"][key]["status"]
+                if "status" in event and event["status"] == "updated":
+                    # write the new event to the calendar
+                    self.update_calendar_event(event, cal)
                     # clear metadata from the event
                     del cal["events"][key]["status"]
             for key in removed_ids:

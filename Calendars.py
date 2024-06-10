@@ -86,7 +86,7 @@ class Calendars:
                         LogDetail.LogDetail().print_log("event", "Writing new event - " + g.game_key())
 
                         cal["events"][g.game_key()] = new_event
-                        new_event["status"] = "updated"
+                        new_event["status"] = "added"
                         written = written + 1
                         any_updated = True
                     else:
@@ -126,6 +126,7 @@ class Calendars:
                     comparable_now = datetime.now(tz)
                     event_time = datetime.strptime(this_event["time"], "%Y-%m-%dT%H:%M:00%z")
                     rolloff_time = (event_time+timedelta(days=days_to_linger)).astimezone(tz)
+
 
                     if comparable_now > rolloff_time:
                         LogDetail.LogDetail().print_log("Log",
