@@ -20,7 +20,7 @@ def project_id():
 
 
 def local_bucket_id():
-    return "jpd-t4545-calendar-manager"
+    return "t4545-calendar-manager"
 
 
 def local_bucket_blob():
