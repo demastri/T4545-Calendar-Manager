@@ -1,36 +1,35 @@
 from bs4 import BeautifulSoup
 import requests
 import LogDetail
-from datetime import datetime, timedelta
+from datetime import datetime
+from config_data import ConfigData
+
 
 class Games_IO(object):
 
-    BASE_URL = "http://team4545league.org/"
-
-    def __init__(self):
-        self.whitePlayer = None
-        self.blackPlayer = None
-        self.whiteTeam = None
-        self.blackTeam = None
-        self.status = None
-        self.division = None
-        self.game_time = None
-        self.round = None
-        self.board = None
-        self.result = None
-        return
-
-    def __init__(self, td_list):
-        self.whitePlayer = td_list[4].text
-        self.whiteTeam = td_list[3].text
-        self.blackPlayer = td_list[6].text
-        self.blackTeam = td_list[7].text
-        self.division = td_list[0].text
-        self.game_time = Games_IO.get_complete_game_time(td_list[2].text)
-        self.round = td_list[1].text
-        self.board = td_list[8].text
-        self.result = Games_IO.getPGNOrResultFromCell(td_list[5])
-        return
+    def __init__(self, *args):
+        if len(args) == 0:
+            self.whitePlayer = None
+            self.blackPlayer = None
+            self.whiteTeam = None
+            self.blackTeam = None
+            self.status = None
+            self.division = None
+            self.game_time = None
+            self.round = None
+            self.board = None
+            self.result = None
+        if len(args) == 1:
+            td_list = args[0]
+            self.whitePlayer = td_list[4].text
+            self.whiteTeam = td_list[3].text
+            self.blackPlayer = td_list[6].text
+            self.blackTeam = td_list[7].text
+            self.division = td_list[0].text
+            self.game_time = Games_IO.get_complete_game_time(td_list[2].text)
+            self.round = td_list[1].text
+            self.board = td_list[8].text
+            self.result = Games_IO.get_game_result(td_list[5])
 
     def team_tag(self):
         return self.whiteTeam.strip()+"-"+self.blackTeam.strip()
@@ -77,19 +76,19 @@ class Games_IO(object):
         return out_list
 
     @staticmethod
-    def getPGNOrResultFromCell(linkCell):
+    def get_game_result(link_cell):
         # extract result or link from cell
         # if it's a set result (or no result) return it
 
-        if linkCell.contents[0] == linkCell.string:
-            posted_result = linkCell.text
+        if link_cell.contents[0] == link_cell.string:
+            posted_result = link_cell.text
             if posted_result == "-":
-                return "Game is scheduled\n";
+                return "Game is scheduled\n"
             return "Game is completed with set result: "+posted_result+"\n"
 
-        if "href" in linkCell.contents[0].attrs:
+        if "href" in link_cell.contents[0].attrs:
             # if it's a link, get the html from the link
-            link = Games_IO.BASE_URL + (linkCell.contents[0].attrs["href"])[3:]
+            link = ConfigData.pgn_base_url() + (link_cell.contents[0].attrs["href"])[3:]
             pgn_page = Games_IO.get_html_data(link)
             soup = BeautifulSoup(pgn_page, 'html.parser')
 
@@ -113,6 +112,6 @@ class Games_IO(object):
 
         # be sure that if the event is in Jan and the current date is Dec, set it to NEXT year
         if cur_time.month == 12 and event_time.month == 1:
-            event_time = event_time.replace(year=cur_year + 1);
+            event_time = event_time.replace(year=cur_year + 1)
 
         return event_time

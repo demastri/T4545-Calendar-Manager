@@ -1,5 +1,6 @@
 functions-framework==3.*
 google-cloud-storage 
-BeautifulSoup4
+BeautifulSoup4~=4.12.3
 google-api-python-client
-pytz
+pytz~=2024.1
+requests~=2.31.0

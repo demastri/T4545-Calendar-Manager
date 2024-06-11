@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 import pytz
-from Games_IO import Games_IO
-from Calendar_IO import Calendar_IO
 import LogDetail
+from config_data import ConfigData
+
 
 class Calendars:
 
@@ -120,7 +120,7 @@ class Calendars:
             for key in cal["events"]:
                 this_event = cal["events"][key]
                 if "status" in this_event and this_event["status"] == "loaded":
-                    days_to_linger = 3
+                    days_to_linger = ConfigData.days_to_keep_events()
                     # additional "timeout" check - say n days after the game was scheduled?
                     tz = pytz.utc
                     comparable_now = datetime.now(tz)
