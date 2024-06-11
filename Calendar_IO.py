@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from Bucket_IO import Bucket_IO
 from LogDetail import LogDetail
+from config_data import ConfigData
 
 
 class Calendar_IO:
@@ -138,7 +139,10 @@ class Calendar_IO:
         }
         try:
             if "old_id" in event.keys() and event["old_id"] is not None:
-                saved_event = service.events().update(calendarId=calendar["access"]["url"], eventId=event["eventId"], body=event_str).execute()
+                saved_event = service.events().update(
+                    calendarId=calendar["access"]["url"],
+                    eventId=event["eventId"],
+                    body=event_str).execute()
                 assert saved_event["id"] == event["eventId"]
             else:
                 saved_event = service.events().insert(calendarId=calendar["access"]["url"], body=event_str).execute()
@@ -177,6 +181,7 @@ class Calendar_IO:
         for cal in removed_cals:
             json_dict["calendars"].remove(cal)
 
+    @staticmethod
     def test_calendar(do_cal_io=True):
         calendar = {
             "name": "John TD",
@@ -187,9 +192,11 @@ class Calendar_IO:
         }
         event = {"players": "P1-P2", "time": "Sat, Mar 16, 11:00", "round": "1", "board": "3",
                  "division": "TestDivision"}
-        this_io = Calendar_IO(
-            "t4545-calendar-manager", "jpd-t4545-calendar-manager", "token.json")
-        this_io.add_to_calendar(event, calendar)
+
+        if do_cal_io:
+            this_io = Calendar_IO(
+                ConfigData.project_id(), ConfigData.local_bucket_id(), ConfigData.local_config_blob())
+            this_io.add_to_calendar(event, calendar)
 
 
 if __name__ == '__main__':

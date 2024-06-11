@@ -1,0 +1,7 @@
+{
+  "credential-file": "token.json",
+  "data-file": "schedule-data.json",
+  "games-site-location": "http://team4545league.org/tournament/games.html",
+  "pgn-site-location": "http://team4545league.org/",
+  "days-to-keep-events": 7
+}
