@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytz
 import LogDetail
-from config_data import ConfigData
+from ConfigData import config_data_factory
 
 
 class Calendars:
@@ -9,7 +9,7 @@ class Calendars:
     def __init__(self, cal_dict):
         self.cal_dict = cal_dict
 
-        self.print_cal_summary = False
+        self.print_cal_summary = config_data_factory().log_calendar_summary
 
         # make sure each event has a status tag - set to loaded - can be set to validated or updated
         # if it's still "loaded" at the end of the update, then it's been removed from the source
@@ -19,14 +19,13 @@ class Calendars:
             cal["status"] = "loaded"
             no_event_id = []
             for key in cal["events"]:
-                if( "eventId" not in cal["events"][key]):
+                if "eventId" not in cal["events"][key]:
                     no_event_id.append(key)
                 cal["events"][key]["status"] = "loaded"
                 if "result" not in cal["events"][key].keys():
                     cal["events"][key]["result"] = ""
             for k in no_event_id:
                 del cal["events"][k]
-
 
     @staticmethod
     def edit_calendar(cal, args):
@@ -79,7 +78,8 @@ class Calendars:
                         g.division in cal["divisions"]):
 
                     # at this point, if the event doesn't exist at this place/time, write it
-                    new_event = {"players": g.player_tag(), "time": g.game_time.strftime("%Y-%m-%dT%H:%M:00%z"), "round": g.round, "board": g.board,
+                    new_event = {"players": g.player_tag(), "time": g.game_time.strftime("%Y-%m-%dT%H:%M:00%z"),
+                                 "round": g.round, "board": g.board,
                                  "division": g.division, "result": "-"}
                     if g.game_key() not in cal["events"].keys():
                         discovered = discovered + 1
@@ -117,35 +117,47 @@ class Calendars:
                                 written = written + 1
                                 any_updated = True
 
+            tz = pytz.utc
+            waiting = 0
+            next_rolloff = datetime.now(tz)
             for key in cal["events"]:
                 this_event = cal["events"][key]
                 if "status" in this_event and this_event["status"] == "loaded":
-                    days_to_linger = ConfigData.days_to_keep_events()
+                    days_to_linger = config_data_factory().days_to_keep_events
                     # additional "timeout" check - say n days after the game was scheduled?
-                    tz = pytz.utc
                     comparable_now = datetime.now(tz)
                     event_time = datetime.strptime(this_event["time"], "%Y-%m-%dT%H:%M:00%z")
-                    rolloff_time = (event_time+timedelta(days=days_to_linger)).astimezone(tz)
-
+                    rolloff_time = (event_time + timedelta(days=days_to_linger)).astimezone(tz)
 
                     if comparable_now > rolloff_time:
                         LogDetail.LogDetail().print_log("Log",
-                            "Removing event after timeout - removed from site, was in calendar " + cal["name"] + " - " + key + " scheduled at " + this_event["time"] )
+                                                        "Removing event after timeout - removed from site, was in "
+                                                        "calendar " +
+                                                        cal["name"] + " - " + key + " scheduled at " + this_event[
+                                                            "time"])
 
                         this_event["status"] = "removed"
                         any_updated = True
                         removed = removed + 1
                     else:
-                        LogDetail.LogDetail().print_log("Log",
-                            "Waiting for event to timeout - removed from site, still in calendar " + cal["name"] + " - " + key + " scheduled at " + this_event["time"] )
+                        waiting = waiting + 1
+                        if event_time < next_rolloff:
+                            next_rolloff = event_time
+                        # LogDetail.LogDetail().print_log("Log",
+                        #                           "Waiting for event to timeout - removed from site, still in "
+                        #                                "calendar " +
+                        #                                cal["name"] + " - " + key + " scheduled at " + this_event[
+                        #                                    "time"])
 
             if self.print_cal_summary:
                 LogDetail.LogDetail().print_log("Log", "For calendar " + cal["name"] +
-                                                ": Incoming: " + str(incoming) +
+                                                ": Waiting to rolloff: " + str(waiting) +
+                                                " " + next_rolloff.strftime("%Y-%m-%dT%H:%M:00%z") +  # Sat, Mar 16, 11:00
+                                                " Incoming: " + str(incoming) +
                                                 " Discovered: " + str(discovered) +
                                                 " Updated: " + str(updated) +
                                                 " Written: " + str(written) +
-                                                " Deleted: " + str(removed) )
+                                                " Deleted: " + str(removed))
 
         return any_updated
 
@@ -178,12 +190,12 @@ class Calendars:
         else:
             teams = args["teams"].split()
 
-        newCal = {"name": name,
-                  "access": {"url": cal_link, "credential": cal_cred, "respondEmail": cal_email},
-                  "players": players, "divisions": divisions, "teams": teams,
-                  "events": {}
-                  }
-        self.cal_dict["calendars"].append(newCal)
+        new_cal = {"name": name,
+                   "access": {"url": cal_link, "credential": cal_cred, "respondEmail": cal_email},
+                   "players": players, "divisions": divisions, "teams": teams,
+                   "events": {}
+                   }
+        self.cal_dict["calendars"].append(new_cal)
 
     def remove_calendar(self, names):
         self.cal_dict["calendars"] = [x for x in self.cal_dict["calendars"] if x["name"] not in names]

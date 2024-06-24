@@ -2,10 +2,10 @@ from bs4 import BeautifulSoup
 import requests
 import LogDetail
 from datetime import datetime
-from config_data import ConfigData
+from ConfigData import config_data_factory
 
 
-class Games_IO(object):
+class GamesIo(object):
 
     def __init__(self, *args):
         if len(args) == 0:
@@ -26,10 +26,10 @@ class Games_IO(object):
             self.blackPlayer = td_list[6].text
             self.blackTeam = td_list[7].text
             self.division = td_list[0].text
-            self.game_time = Games_IO.get_complete_game_time(td_list[2].text)
+            self.game_time = GamesIo.get_complete_game_time(td_list[2].text)
             self.round = td_list[1].text
             self.board = td_list[8].text
-            self.result = Games_IO.get_game_result(td_list[5])
+            self.result = GamesIo.get_game_result(td_list[5])
 
     def team_tag(self):
         return self.whiteTeam.strip()+"-"+self.blackTeam.strip()
@@ -60,7 +60,7 @@ class Games_IO(object):
     @staticmethod
     def load_games(url):
         out_list = []
-        games_html = Games_IO.get_html_data(url)
+        games_html = GamesIo.get_html_data(url)
         game_soup = BeautifulSoup(games_html, 'html.parser')
 
         pairing_table = game_soup.find_all('table', {'class': 'sched'})
@@ -70,7 +70,7 @@ class Games_IO(object):
             pairing_attr = tag.find_all('td', recursive=False)
             if len(pairing_attr) == 0:
                 continue
-            new_game = Games_IO(pairing_attr)
+            new_game = GamesIo(pairing_attr)
             out_list.append(new_game)
 
         return out_list
@@ -88,8 +88,8 @@ class Games_IO(object):
 
         if "href" in link_cell.contents[0].attrs:
             # if it's a link, get the html from the link
-            link = ConfigData.pgn_base_url() + (link_cell.contents[0].attrs["href"])[3:]
-            pgn_page = Games_IO.get_html_data(link)
+            link = config_data_factory().pgn_site + (link_cell.contents[0].attrs["href"])[3:]
+            pgn_page = GamesIo.get_html_data(link)
             soup = BeautifulSoup(pgn_page, 'html.parser')
 
             # it's just a <P> -- PGN Text -- </p> tag where the first 6 characters of the text are  "[Event"

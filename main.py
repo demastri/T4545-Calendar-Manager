@@ -2,37 +2,35 @@ from urllib.request import Request
 
 import functions_framework
 
-import Calendar_IO
-import Bucket_IO
-import Games_IO
+from ConfigData import config_data_factory
+import CalendarIo
+from BucketIo import BucketIo
+import GamesIo
 import Calendars
 import base64
 import json
-from Games_IO import Games_IO
-from config_data import ConfigData
 
+from CalendarIo import CalendarIo
+from GamesIo import GamesIo
 from LogDetail import LogDetail
 
 
 def run_task(task, args):
     # note, this doesn't actually read data, just preps the bucket
-    bucket = Bucket_IO.Bucket_IO(
-        ConfigData.project_id(), ConfigData.local_bucket_id(), ConfigData.local_bucket_blob())
-    current_calendars = Calendars.Calendars(bucket.read_data())
+    bucket = BucketIo()
+    current_calendars = Calendars.Calendars(bucket.read_data(config_data_factory().data_file))
 
     match task:
         case "display":
             for cal in current_calendars.cal_dict["calendars"]:
                 print(cal)
         case "update":
-            visible_games = Games_IO.load_games(ConfigData.games_url())
+            visible_games = GamesIo.load_games(config_data_factory().games_site)
             updated = current_calendars.update_events(visible_games)
 
             if updated:
-                shared_calendars = Calendar_IO.Calendar_IO(
-                    ConfigData.project_id(), ConfigData.local_bucket_id(), ConfigData.local_credential_blob())
-                shared_calendars.update_events(current_calendars.cal_dict)
-                bucket.write_data(current_calendars.cal_dict)
+                CalendarIo().update_events(current_calendars.cal_dict)
+                bucket.write_data(current_calendars.cal_dict, config_data_factory().data_file)
                 LogDetail().print_log("Log", "Bucket overwritten")
             else:
                 LogDetail().print_log("Log", "No updates found, bucket not overwritten")
@@ -51,7 +49,7 @@ def run_task(task, args):
                     LogDetail().print_log("Log", args["calName"] + "-Teams:" + str(cal["teams"]))
                     LogDetail().print_log("Log", args["calName"] + "-Divisions:" + str(cal["divisions"]))
                     LogDetail().print_log("Log", args["calName"] + "-Players:" + str(cal["players"]))
-            bucket.write_data(current_calendars.cal_dict)
+            bucket.write_data(current_calendars.cal_dict, config_data_factory().data_file)
             LogDetail().print_log("Log", "Bucket overwritten on edited calendar(s) ")
 
         case "add_calendar":  # adds an empty calendar to the structure
@@ -65,9 +63,7 @@ def run_task(task, args):
                 args["url"] = ""
                 args["cred"] = ""
                 # create a new calendar
-                new_cal_id = (Calendar_IO.Calendar_IO(
-                    ConfigData.project_id(), ConfigData.local_bucket_id(), ConfigData.local_credential_blob())
-                            .new_calendar(args))
+                new_cal_id = CalendarIo().new_calendar(args)
 
                 # get URL / credential for new calendar
                 if new_cal_id != "":
@@ -75,7 +71,7 @@ def run_task(task, args):
                     args["cred"] = "Some cred"
                     current_calendars.add_calendar(args)
                     # the new calendar should not have events, so calendarIO is not required
-                    bucket.write_data(current_calendars.cal_dict)
+                    bucket.write_data(current_calendars.cal_dict, config_data_factory().data_file)
                     LogDetail().print_log("Log", "Bucket overwritten to add calendar " + args["name"])
                 else:
                     # send email with failure
@@ -91,13 +87,12 @@ def run_task(task, args):
             cal_to_remove = args["calName"]
             remove_list = [x for x in current_calendars.cal_dict["calendars"] if x["name"] == cal_to_remove]
 
-            this_cal_io = Calendar_IO.Calendar_IO(
-                ConfigData.project_id(), ConfigData.local_bucket_id(), ConfigData.local_credential_blob())
+            this_cal_io = CalendarIo()
             for cal in remove_list:
                 this_cal_io.delete_calendar(cal)
 
             current_calendars.remove_calendar([cal_to_remove])
-            bucket.write_data(current_calendars.cal_dict)
+            bucket.write_data(current_calendars.cal_dict, config_data_factory().data_file)
             LogDetail().print_log("Log", "Bucket overwritten on removal of calendars: " + cal_to_remove)
 
         case "quit":
@@ -109,8 +104,6 @@ def run_task(task, args):
 
 @functions_framework.http
 def hello_http(request):
-    ConfigData.init_config()
-
     data = request.data.decode("ascii")
     data = json.loads(data)
 

@@ -1,7 +1,11 @@
 {
+  "project-id": "t4545-calendar-manager",
+  "bucket-id":"t4545-calendar-manager",
   "credential-file": "token.json",
   "data-file": "schedule-data.json",
+  "migration-data-file": "schedule-data.json",
   "games-site-location": "http://team4545league.org/tournament/games.html",
   "pgn-site-location": "http://team4545league.org/",
-  "days-to-keep-events": 7
+  "days-to-keep-events": 7,
+  "log-calendar-summary": true
 }

@@ -4,29 +4,25 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from datetime import datetime, timedelta
 
-from Bucket_IO import Bucket_IO
 from LogDetail import LogDetail
-from config_data import ConfigData
+from ConfigData import config_data_factory
+from BucketIo import BucketIo
 
 
-class Calendar_IO:
-    def __init__(self, project_id='', bucket_id='', credential_blob=''):
-        self.project_id = project_id
-        self.bucket_id = bucket_id
-        self.credential_blob = credential_blob
+class CalendarIo:
+    def __init__(self):
         self.SCOPES = ["https://www.googleapis.com/auth/calendar"]
         return
 
-    def get_credentials_from_bucket(self):
-        bucket = Bucket_IO(self.project_id, self.bucket_id, self.credential_blob)
-        return bucket.read_data()
+    @staticmethod
+    def get_credentials_from_bucket():
+        return BucketIo().read_data(config_data_factory().credential_file)
 
-    def write_credentials_to_bucket(self, dict):
-        bucket = Bucket_IO(self.project_id, self.bucket_id, self.credential_blob)
-        bucket.write_data(dict)
+    @staticmethod
+    def write_credentials_to_bucket(cred_dict):
+        BucketIo().write_data(config_data_factory().credential_file, cred_dict)
 
     def get_credentials(self):
-        creds = None
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
@@ -42,11 +38,11 @@ class Calendar_IO:
 
     def new_calendar(self, args):
         service = None
-        newCalId = ""
+        new_cal_id = ""
         try:
             creds = self.get_credentials()
             service = discovery.build("calendar", "v3", credentials=creds)
-        except Exception as e:
+        except Exception:
             LogDetail().print_log("Error",
                                   "Exception accessing calendar service - new_calendar: <" + args["name"] + "> ")
 
@@ -55,28 +51,29 @@ class Calendar_IO:
                 "kind": "calendar#calendar",  # Type of the resource ("calendar#calendar").
                 "description": args["calName"],  # Description of the calendar. Optional.
                 "summary": args["calName"],  # Title of the calendar.
-                "timeZone": 'America/New_York',                # The time zone of the calendar. (Formatted as an IANA Time Zone Database name, e.g. "Europe/Zurich".) Optional.
+                "timeZone": 'America/New_York',
+                # The time zone of the calendar. (Formatted as an IANA Time Zone Database name, e.g. "Europe/Zurich".) Optional.
             }
-            #calList = service.calendarList().list().execute()
-            insertRtn = service.calendars().insert(body=body).execute()
-            calList = service.calendarList().list().execute()
+            # cal_list_old = service.calendarList().list().execute()
+            insert_rtn = service.calendars().insert(body=body).execute()
+            # cal_list_new = service.calendarList().list().execute()
 
-            newCalId = insertRtn['id']
+            new_cal_id = insert_rtn['id']
 
         except:
             LogDetail().print_log("Error", "Attempt to create new calendar failed: " + args["name"])
-        return newCalId
+        return new_cal_id
 
     def delete_calendar(self, args):
         service = None
         try:
             creds = self.get_credentials()
             service = discovery.build("calendar", "v3", credentials=creds)
-        except Exception as e:
+        except Exception:
             LogDetail().print_log("Error",
                                   "Exception accessing calendar service - delete_calendar: <" + args["name"] + "> ")
         try:
-             service.calendars().delete(calendarId=args['access']["url"]).execute()
+            service.calendars().delete(calendarId=args['access']["url"]).execute()
 
         except:
             LogDetail().print_log("Error", "Attempt to remove calendar failed: " + args["name"])
@@ -87,14 +84,14 @@ class Calendar_IO:
         try:
             creds = self.get_credentials()
             service = discovery.build("calendar", "v3", credentials=creds)
-        except Exception as e:
+        except Exception:
             LogDetail().print_log("Error",
                                   "Exception accessing calendar service - add_to_calendar: <" + calendar["name"] + "> ")
 
         try:
             if "eventId" in event:
                 service.events().delete(calendarId=calendar["access"]["url"], eventId=event["eventId"]).execute()
-        except:
+        except Exception:
             LogDetail().print_log("Error", "Attempt to delete event failed: " + event["eventId"])
         return 0
 
@@ -106,7 +103,7 @@ class Calendar_IO:
         try:
             creds = self.get_credentials()
             service = discovery.build("calendar", "v3", credentials=creds)
-        except Exception as e:
+        except Exception:
             LogDetail().print_log("Error",
                                   "Exception accessing calendar service - add_to_calendar: <" + calendar["name"] + "> ")
 
@@ -147,7 +144,7 @@ class Calendar_IO:
             else:
                 saved_event = service.events().insert(calendarId=calendar["access"]["url"], body=event_str).execute()
                 event["eventId"] = saved_event["id"]
-        except Exception as e:
+        except Exception:
             LogDetail().print_log("Error",
                                   "Exception writing to calendar - add_to_calendar: <" + calendar["name"] + "> ")
         return 0
@@ -194,10 +191,8 @@ class Calendar_IO:
                  "division": "TestDivision"}
 
         if do_cal_io:
-            this_io = Calendar_IO(
-                ConfigData.project_id(), ConfigData.local_bucket_id(), ConfigData.local_config_blob())
-            this_io.add_to_calendar(event, calendar)
+            CalendarIo().add_to_calendar(event, calendar)
 
 
 if __name__ == '__main__':
-    Calendar_IO().test_calendar(False)
+    CalendarIo().test_calendar(False)

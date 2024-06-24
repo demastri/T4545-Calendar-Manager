@@ -46,6 +46,9 @@ Note that these are given to the program as base64encoded strings in the \[“me
 5.  DONE - let games expire some time after they disappear from the website (configurable? by calendar??)
     
 6.  remove game state from the bucket - simply refer to the real world on the calendar
+7.  rename the calendar / data file from config.json to something more descriptive
+8.  DONE - extract runtime parameters to separate file to be added at deploy time - in runtime-parameters.json
+
     
 
 **Technical Design**
@@ -53,6 +56,11 @@ Note that these are given to the program as base64encoded strings in the \[“me
 The code is written in Python 3.7+, and relies on various Google Cloud libraries, in requirements.txt.
 
 functions\_framework allows the code to receive Cloud Function triggers, cloud-storage makes the bucket API available, BeautifulSoup4 is used to wrangle the T4545 site html, and the google-api-python-client brings gcp to life…
+
+New code files added (also refactored some of the code to make it clearer - have NOT yet updated the below doc):
+* config_data.py, pulls account, bucket, and other configurables from a runtime-parameters.json  in the same bucket as the data file
+* cloudbuild.yaml - context for Cloud Buikd to pull and deploy from the github repo with no human interaction on checkin
+* runtime-parameters.json - injectable parameters as noted above
 
 There are only 6 code files. Originally these were broken out as:
 
