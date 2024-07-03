@@ -80,7 +80,7 @@ class Calendars:
                     # at this point, if the event doesn't exist at this place/time, write it
                     new_event = {"players": g.player_tag(), "time": g.game_time.strftime("%Y-%m-%dT%H:%M:00%z"),
                                  "round": g.round, "board": g.board,
-                                 "division": g.division, "result": "-"}
+                                 "division": g.division, "result": g.result}
                     if g.game_key() not in cal["events"].keys():
                         discovered = discovered + 1
                         LogDetail.LogDetail().print_log("event", "Writing new event - " + g.game_key())
